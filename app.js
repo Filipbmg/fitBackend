@@ -1,11 +1,12 @@
 import express from "express";
 import session from "express-session";
-import MySQLStore from "connect-mysql2";
+import MySQLStore from "express-mysql-session";
 import dotenv from "dotenv";
 import cors from "cors";
 import helmet from "helmet";
 import { globalErrorHandler } from "./middleware/errorHandlers.js";
 import authRouter from "./routers/authRouter.js";
+import { db } from "./database/connection.js";
 
 dotenv.config();
 
@@ -18,12 +19,9 @@ app.use(cors({
 app.use(helmet());
 app.use(express.json());
 
-const sessionStore = new MySQLStore({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-});
+const sessionStore = new (MySQLStore(session))({
+    createDatabaseTable: true,
+    }, db);
 app.use(session({
     key: "user_sid",
     secret: process.env.SESSION_SECRET,
@@ -38,7 +36,7 @@ app.use(session({
     },
 }));
 
-app.use("/login");
+app.use(authRouter);
 
 app.all("*", (req, res, next) => {
     const err = new Error(`Can't find ${req.originalUrl}`);
